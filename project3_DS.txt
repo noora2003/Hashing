@@ -1,0 +1,521 @@
+#include<stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#define ARRAY_SIZE 100
+#define WIDTH 100
+struct array {
+    char word[20];
+    char meaning1[20];
+    char meaning2[20];
+    char meaning3[20];
+};
+int current_lines=1;
+struct array words[ARRAY_SIZE];
+char double_table[][WIDTH]={'\0'};//Declare and initialize an array of strings to be empty
+char quadratic_table[][WIDTH]={'\0'};
+void read_file() {
+    FILE *file = fopen("words.txt", "r");
+    char content[100], *token;
+    int i = 0;
+    if (file == NULL) {
+        printf("unable to open the file\n\n");
+        exit(1);}
+           while (fgets(content, 100, file) != NULL &&i < ARRAY_SIZE) {
+               current_lines++; // count the lines in the file
+                token = strtok(content, ":#"); // tokenize the content at :#
+                if (token != NULL) {
+                    // Copy the word to the struct
+                    strcpy(words[i].word, token);
+                }
+
+                    token = strtok(NULL, ":#");// continue tokenizing the same string
+                    if (token != NULL) {
+                        strcpy(words[i].meaning1, token);
+                    }
+                    token = strtok(NULL, ":#"); // continue tokenizing the same string
+                    if (token != NULL) {
+                        strcpy(words[i].meaning2, token);
+                    }
+                    token = strtok(NULL, ":#");// continue tokenizing the same string
+                    if (token != NULL) {
+                        strcpy(words[i].meaning3, token);
+                    }
+
+                    i++; // to the next index
+
+            }
+
+
+   // printf("%d\n",current_lines);
+   // printf("read the equations Successfully\n\n");
+    fclose(file);
+}
+
+void print(){ // print the equation
+    for (int i = 0; i < ARRAY_SIZE; i++) {
+        printf("index [%d] %s %s %s %s\n",i,words[i].word,words[i].meaning1,words[i].meaning2,words[i].meaning3);
+      // printf("\n");
+    }
+}
+
+bool isPrime(int n){
+    if (n <= 1) {
+        return false;
+    }
+    bool flag =true;
+    for (int i= 2; i<= n/2; i++) {
+        if (n% i == 0) {
+            flag = false;
+            break;
+        }
+        
+    }
+    return flag;
+}
+
+int table_size(){
+    int equ;
+    equ=(2*current_lines)+20;
+   int size=equ;
+    while(!isPrime(size)){
+     size++;
+    }
+    return size;
+}
+
+void double_Hash() {
+    int index,i,j, hash_key1, hash_key2,counter=0;
+   int size=table_size();
+    for ( j = 0; j < ARRAY_SIZE; j++) {
+      if(words[j].word[0]=='\0'|| words[j].word[0]=='\n'){
+          // continue if the index in the struct array is empty
+          continue;
+      }
+       int key = 0;
+        for (int k = 0; k < strlen(words[j].word); k++) {
+          // printf("'%c': %d\n", words[j].word[k], (int) words[j].word[k]);
+            key = ((key<<5)+ (int) words[j].word[k])%size;
+            // shift left the character by 5 bits then add the ascii code
+        }
+
+      // printf("%d\n",key);
+       hash_key1=key % size; // current line = table size
+       hash_key2=1+key%(size-1);
+        for ( i = 0; i < size; i++) {
+            index = (hash_key1 + (i * hash_key2)) % size;
+            if (double_table[index][0] == '\0') { // check if the index is empty
+                strcpy(double_table[index], words[j].word);
+                // Concat the other strings to avoid to overwrite
+                strcat(double_table[index], " ");
+                strcat(double_table[index], words[j].meaning1);
+                strcat(double_table[index], " ");
+                strcat(double_table[index], words[j].meaning2);
+                strcat(double_table[index], " ");
+                strcat(double_table[index], words[j].meaning3);
+
+                break;
+            } else {
+                //  the index is full ,Collision happened
+                printf("Collision at index [%d] for word %s\n\n", index, words[j].word);
+                counter++;
+
+            }
+
+        }
+        if(i == size)
+            printf("Element {%s} cannot be inserted \n\n",words[j].word);
+
+
+    }
+    printf("The number of collisions in double table is:%d\n",counter);
+
+}
+
+void print_doubleTable() {
+      int size=table_size();
+    for (int i = 0; i < size; i++) {
+        printf(" Index [%d]--> ", i);
+        if (double_table[i][0] == '\0') {
+            printf("__");
+        }
+
+       else{
+            printf("%s",double_table[i]);
+       }
+
+        printf("\n");
+
+    }
+}
+
+void quadratic_Hash(){
+    int index,i,j, hash_key,counter=0;
+    int size= table_size();
+  //  printf(" size %d\n",size);
+
+    for ( j = 0; j < ARRAY_SIZE; j++) {
+        if (words[j].word[0] == '\0') {
+          //  printf("Skipping empty or newline word at index %d\n", j);
+            continue;
+        }
+        int key=0;
+        for (int k = 0; k < strlen(words[j].word); k++) {
+            // printf("'%c': %d\n", words[j].word[k], (int) words[j].word[k]);
+            key = ((key<<5)+ (int) words[j].word[k])%size;
+            // shift left the character by 5 bits then add the ascii code
+        }
+
+        //  printf("%d\n",key);
+        hash_key=key % size; // current line = table size
+        for ( i = 0; i < size; i++) {
+            index = (hash_key + (i*i)) % size;
+            if (quadratic_table[index][0] == '\0') { // check if the index is empty
+                strcpy(quadratic_table[index], words[j].word);
+                // Concat the other strings to avoid to overwrite
+                strcat(quadratic_table[index], " ");
+                strcat(quadratic_table[index], words[j].meaning1);
+                strcat(quadratic_table[index], " ");
+                strcat(quadratic_table[index], words[j].meaning2);
+                strcat(quadratic_table[index], " ");
+                strcat(quadratic_table[index], words[j].meaning3);
+
+                break;
+            } else {
+                //  the index is full ,Collision happened
+                printf("Collision at index [%d] for word %s\n\n", index, words[j].word);
+                counter++;
+
+            }
+
+        }
+        if(i == size)
+            printf("Element {%s} cannot be inserted \n\n",words[j].word);
+
+
+    }
+    printf("The number of collisions in Quadratic table is: %d\n",counter);
+
+}
+
+void print_quadraticTable() {
+    int size= table_size();
+    for (int i = 0; i < size; i++) {
+        printf(" Index [%d]--> ", i);
+        if (quadratic_table[i][0] == '\0') {
+            printf("__");
+        }
+
+        else{
+            printf("%s",quadratic_table[i]);
+        }
+
+        printf("\n");
+
+    }
+}
+
+void load_Factor(){
+   int size=table_size();
+    printf("The table size for both tables is %d\n",size);
+    double factor=0;
+    int element=0;
+    for (int i = 0; i < size; i++) {
+        if (strcmp(double_table[i],"__")>0){
+            element++;
+        }
+    }
+    printf("The number of element is:%d\n",element);
+    factor=(double)element/size;
+    printf("The load factor is %.2f\n",factor);
+
+}
+
+void insertion_double(){
+char m[100],m1[100],m2[100],m3[100];
+    printf("Enter the word:\n");
+    scanf("%s",m);
+    printf("Enter the first Meaning:\n");
+    scanf("%s",m1);
+    printf("Enter the second Meaning:\n");
+    scanf("%s",m2);
+    printf("Enter the third Meaning:\n");
+    scanf("%s",m3);
+    int index,i,j, hash_key1, hash_key2,counter=0;
+    int size=table_size();
+
+        int key = 0;
+        for (int k = 0; k < strlen(m); k++) {
+            key = ((key<<5)+ (int) m[k])%size;
+            // shift left the character by 5 bits then add the ascii code
+        }
+
+        // printf("%d\n",key);
+        hash_key1=key % size; // current line = table size
+        hash_key2=1+key%(size-1);
+        for ( i = 0; i < size; i++) {
+            index = (hash_key1 + (i * hash_key2)) % size;
+            if (double_table[index][0] == '\0') { // check if the index is empty
+                strcpy(double_table[index], m);
+                // Concat the other strings to avoid to overwrite
+                strcat(double_table[index], " ");
+                strcat(double_table[index], m1);
+                strcat(double_table[index], " ");
+                strcat(double_table[index], m2);
+                strcat(double_table[index], " ");
+                strcat(double_table[index], m3);
+
+                break;
+            } else {
+                //  the index is full ,Collision happened
+                printf("Collision at index [%d] for word %s\n\n", index, m);
+                counter++;
+
+            }
+
+        }
+        if(i == size) {
+            printf("Element {%s} cannot be inserted \n\n", m);
+        }
+    printf("The number of collisions in the double table is:%d\n\n",counter);
+
+}
+
+void insertion_quadratic(){
+    char m[100],m1[100],m2[100],m3[100];
+    printf("Enter the word:\n");
+    scanf("%s",m);
+    printf("Enter the first Meaning:\n");
+    scanf("%s",m1);
+    printf("Enter the second Meaning:\n");
+    scanf("%s",m2);
+    printf("Enter the third Meaning:\n");
+    scanf("%s",m3);
+    int index,i,j, hash_key1, hash_key2,counter=0;
+    int size=table_size();
+
+    int key = 0;
+    for (int k = 0; k < strlen(m); k++) {
+        key = ((key<<5)+ (int) m[k])%size;
+        // shift left the character by 5 bits then add the ascii code
+    }
+
+    // printf("%d\n",key);
+    hash_key1=key % size; // current line = table size
+    hash_key2=1+key%(size-1);
+    for ( i = 0; i < size; i++) {
+        index = (hash_key1 + (i * hash_key2)) % size;
+        if (quadratic_table[index][0] == '\0') { // check if the index is empty
+            strcpy(quadratic_table[index], m);
+            // Concat the other strings to avoid to overwrite
+            strcat(quadratic_table[index], " ");
+            strcat(quadratic_table[index], m1);
+            strcat(quadratic_table[index], " ");
+            strcat(quadratic_table[index], m2);
+            strcat(quadratic_table[index], " ");
+            strcat(quadratic_table[index], m3);
+
+            break;
+        } else {
+            //  the index is full ,Collision happened
+            printf("Collision at index [%d] for word %s\n\n", index, m);
+            counter++;
+
+        }
+
+    }
+    if(i == size) {
+        printf("Element {%s} cannot be inserted \n\n", m);
+    }
+    printf("The number of collisions in the quadratic table is:%d\n\n",counter);
+
+
+}
+
+void search_double(){
+    char element[20];
+    int i,flag=0;
+   int size=table_size();
+    printf("Enter search element:\n");
+    scanf("%s",element);
+       for (i = 0; i < size; i++) {
+           if (strstr(double_table[i], element)!=NULL) { //if the word is found
+               printf("The word {%s} is found in the double table at index %d\n", element, i);
+               flag=1;
+              // break;
+           }
+    }
+      if(!flag){
+          printf("The word {%s} is not found in the double table\n", element);
+      }
+}
+
+void search_quadratic(){
+    char element[20];
+    int i,flag=0;
+   int size=table_size();
+    printf("Enter search element:\n");
+    scanf("%s",element);
+    for (i = 0; i < size; i++) {
+        if (strstr(quadratic_table[i], element)!=NULL) { //if the word is found
+            printf("The word {%s} is found in the quadratic table at index %d\n", element, i);
+            flag=1;
+            break;
+        }
+    }
+    if(!flag){
+        printf("The word {%s} is not found in the quadratic table\n", element);
+    }
+}
+
+void delete_double(){
+    char element[20];
+    int i,flag=0;
+   int size=table_size();
+    printf("Enter delete element:\n");
+    scanf("%s",element);
+    for (i = 0; i < size; i++) {
+        if (strstr(double_table[i], element)!=NULL) { //if the word is found
+
+            printf("The word %s found in the double table at index [%d] and deleted\n",element,i);
+            strcpy(double_table[i],"__");
+            flag=1;
+        }
+    }
+    if(!flag){
+        printf("The word {%s} is not found in the double table\n", element);
+    }
+}
+
+void delete_quadratic(){
+    char element[20];
+    int i,flag=0;
+     int size=table_size();
+    printf("Enter delete element:\n");
+    scanf("%s",element);
+    for (i = 0; i < size; i++) {
+        if (strstr(quadratic_table[i], element)!=NULL) { //if the word is found
+            printf("The word %s found in the quadratic table at index [%d] and deleted\n",element,i);
+            strcpy(quadratic_table[i],"__");
+            flag=1;
+        }
+    }
+    if(!flag){
+        printf("The word {%s} is not found in the quadratic table\n", element);
+    }
+}
+
+void save_table(){
+    FILE *out_file= fopen("saved_words.txt", "w");
+    int size=table_size();
+    for (int i = 0; i < size; i++) {
+        fprintf(out_file," Index [%d]--> ", i);
+        if (double_table[i][0] == '\0') {
+            fprintf(out_file,"__");
+        }
+
+        else{
+            fprintf(out_file,"%s",double_table[i]);
+        }
+
+        fprintf(out_file,"\n");
+
+    }
+
+    fclose(out_file);
+}
+
+int main(){
+    printf("\t\t\t\t---------- Noura Khdour  1212072  sec:1 ----------\n");
+    printf("\t\t\t\t ---------------- project#3: Hashing--------------\n");
+    printf("\t\t\t\t -----------------------------------------------------\n");
+    do{
+        printf("\n");
+        printf(" 1 : print hashed tables\n");
+        printf(" 2 : Print out table size and the load factor \n");
+        printf(" 3 : Print out the used hash functions. \n");
+        printf(" 4 : Insert a new record to hash table\n");
+        printf(" 5 : Search for a specific word\n");
+        printf(" 6 : Delete a specific word\n");
+        printf(" 7 : Save hash table back to a file\n");
+        printf(" 8 : Exits \n");
+        printf(" please select the number of instruction:\n");
+        int choice,number,x,y;
+        scanf("%d",&choice);
+        if(choice==1){
+         read_file();
+         printf("********** Double table **********\n");
+         double_Hash();
+         print_doubleTable();
+         printf("********** quadratic table **********\n");
+         quadratic_Hash();
+         print_quadraticTable();
+
+        }
+
+        if(choice==2){
+            //read_file();
+           // double_Hash();
+           // print_doubleTable();
+            load_Factor();
+
+        }
+
+        else if(choice==3){
+            printf("In the double hashing :\n");
+            printf("hash_key1=key mod size\n");
+            printf("hash_key2=1+key mod (size-1)\n");
+            printf("In the quadratic hashing:\n");
+            printf("hash_key=key mod size\n");
+        }
+
+        else if(choice==4){
+            printf("Enter 1)-inert into double table 2)-inert into quadratic table \n");
+            scanf("%d",&number);
+            if(number==1){
+              // read_file();
+                insertion_double();
+                print_doubleTable();
+            }
+           else if(number==2){
+                //read_file();
+                insertion_quadratic();
+                print_quadraticTable();
+
+           }
+        }
+        else if(choice==5){
+            printf("Enter 1)-search at double table 2)-search at quadratic table \n");
+            scanf("%d",&x);
+            if(x==1){
+              search_double();
+            }
+          else if(x==2){
+              search_quadratic();
+          }
+        }
+        else if(choice==6){
+            printf("Enter 1)-delete from double table 2)-delete from quadratic table \n");
+            scanf("%d",&y);
+            if(y==1){
+                delete_double();
+                print_doubleTable();
+            }
+         else if(y==2){
+             delete_quadratic();
+             print_quadraticTable();
+         }
+
+        }
+        else if(choice==7){
+           save_table();
+            printf("saved done\n");
+        }
+        else if (choice==8){
+            printf("Exit the program :)\n");
+            exit(1);
+        }
+
+    } while (1);
+    return 0;
+}
